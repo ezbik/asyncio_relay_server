@@ -1,0 +1,6 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# vim: filetype=bash
+
+echo -ne "MPROXY TCP vk.com 80\r\nGET / HTTP/1.1\r\nHost: vk.com\r\n\r\n"  | nc localhost 1080
+

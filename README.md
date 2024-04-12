@@ -10,7 +10,7 @@
 like Haproxy PROXY v1
 allows TCP/UDP
 
-MPROXY TCP 4 SRC DST SRCPORT DSTPORT\r\n
+MPROXY TCP 4 DST DSTPORT\r\n
 
 ## proxy server
 

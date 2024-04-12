@@ -263,6 +263,8 @@ class LocalTCP(asyncio.Protocol):
                 except:
                     raise CommandExecError(f"Can't parse HEADER: {HEADER}")
 
+                #print('header processing stop;')
+
                 self.config.ACCESS_LOG and access_logger.info(
                     f'Incoming Relay request to {PROTO}://{DST_ADDR}:{DST_PORT}'
                 )
@@ -313,6 +315,19 @@ class LocalTCP(asyncio.Protocol):
                             f"Established TCP stream between"
                             f" {self.peername} and {self.remote_tcp.peername}"
                         )
+
+                    if data_leftover:
+                        #print('= send to self.remote_tcp.write:', data_leftover)
+                        try:
+                            self.remote_tcp.write(data_leftover)
+                        except Exception as e:
+                            raise CommandExecError(f"Could not write data leftover to the remote side, {e}")
+                            self.close()
+                    else:
+                        #print('nothing to send to self.remote_tcp.write')
+                        pass
+
+
                 elif PROTO == 'UDP' :
                     self.stage = self.STAGE_CONNECT
                     try:
@@ -339,17 +354,11 @@ class LocalTCP(asyncio.Protocol):
                 else:
                     raise NoCommandAllowed(f"Unsupported CMD value: {CMD}")
 
+
             except Exception as e:
                 error_logger.warning(f"{e} during the negotiation with {self.peername}")
                 self.close()
             
-            #print('header processing stop;')
-            if data_leftover:
-                #print('sent to self.remote_tcp.write:', data_leftover)
-                self.remote_tcp.write(data_leftover)
-            else:
-                #print('nothing to send to self.remote_tcp.write')
-                pass
 
 
     def data_received(self, data):
@@ -361,8 +370,13 @@ class LocalTCP(asyncio.Protocol):
             #data_leftover = process_header_and_feed_the_rest2(data)
             #self.remote_tcp.write( data_leftover )
         elif self.stage == self.STAGE_CONNECT:
-            print('sending directly to remote side')
-            self.remote_tcp.write(data)
+            #print('= sending directly to remote side')
+            try:
+                self.remote_tcp.write(data)
+            except Exception as e:
+                self.config.ACCESS_LOG and access_logger.debug(f"Could not write data to the remote side: {e}")
+                self.close()
+
         elif self.stage == self.STAGE_DESTROY:
             self.close()
 
@@ -408,7 +422,7 @@ class RemoteTCP(asyncio.Protocol):
     def write(self, data):
         if not self.transport.is_closing():
             self.transport.write(data)
-            #print('RemoteTCP written data',data)
+            #print('RemoteTCP written data',data[:100],'length',len(data))
 
     def connection_made(self, transport):
         self.transport = transport
@@ -424,6 +438,7 @@ class RemoteTCP(asyncio.Protocol):
         self.local_tcp.write(data)
 
     def eof_received(self):
+        #print('RemoteTCP eof_received')
         self.close()
 
     def pause_writing(self) -> None:
@@ -436,9 +451,11 @@ class RemoteTCP(asyncio.Protocol):
         self.local_tcp.transport.resume_reading()
 
     def connection_lost(self, exc):
+        #print('RemoteTCP connection_lost')
         self.close()
 
     def close(self):
+        #print('RemoteTCP close')
         if self.is_closing:
             return
         self.is_closing = True

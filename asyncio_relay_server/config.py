@@ -23,6 +23,7 @@ DEFAULT_CONFIG = {
     "ACCESS_LOG": False,
     "DEBUG": False,
     "RESOLVER": "",
+    "RESOLVING_ORDER": 46,
 }
 
 
@@ -33,6 +34,7 @@ class Config(dict):
     ACCESS_LOG: bool
     DEBUG: bool
     RESOLVER: str
+    RESOLVING_ORDER: int
 
     def __init__(self):
         super().__init__({**DEFAULT_CONFIG})

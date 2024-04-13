@@ -59,9 +59,8 @@ class SpeedAnalyzer:
 #UL=SpeedAnalyzer()
 
 
-def query(resolver, name):
-    ORDER=46
-
+def query(config, name):
+    resolver=config.resolver
     def _q(name, query_type):
         try:
             answers = resolver.query(name, query_type)
@@ -70,10 +69,11 @@ def query(resolver, name):
         except:
             return False
         
-    if ORDER == 4:  ret= _q(name, 'A') 
-    if ORDER == 6:  ret= _q(name, 'AAAA') 
-    if ORDER == 64: ret= _q(name, 'AAAA') or _q(name, 'AAAA')
-    if ORDER == 46: ret= _q(name, 'A') or _q(name, 'AAAA')
+    RESOLVING_ORDER=config.RESOLVING_ORDER
+    if RESOLVING_ORDER == 4:  ret= _q(name, 'A') 
+    if RESOLVING_ORDER == 6:  ret= _q(name, 'AAAA') 
+    if RESOLVING_ORDER == 64: ret= _q(name, 'AAAA') or _q(name, 'AAAA')
+    if RESOLVING_ORDER == 46: ret= _q(name, 'A') or _q(name, 'AAAA')
     return ret
 
         
@@ -166,7 +166,7 @@ class LocalTCP(asyncio.Protocol):
                     self.config.ACCESS_LOG and access_logger.debug(
                         f'Resolving remote name {HNAME}'
                     )
-                    DST_ADDR = query(self.config.resolver, HNAME )
+                    DST_ADDR = query(self.config, HNAME )
                     if not DST_ADDR:
                         raise CommandExecError(f"Can't resolve hostname {HNAME}")
                     self.config.ACCESS_LOG and access_logger.debug(

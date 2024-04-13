@@ -60,7 +60,7 @@ class SpeedAnalyzer:
 
 
 def query(resolver, name):
-    ORDER=4
+    ORDER=46
 
     def _q(name, query_type):
         try:

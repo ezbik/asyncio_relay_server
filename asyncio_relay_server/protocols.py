@@ -59,14 +59,24 @@ class SpeedAnalyzer:
 #UL=SpeedAnalyzer()
 
 
-def query(resolver, name, query_type):
-    try:
-        answers = resolver.query(name, query_type)
-        for rdata in answers: 
-            return rdata.to_text()
-    except Exception as e:
-        print(e)
+def query(resolver, name):
+    ORDER=4
 
+    def _q(name, query_type):
+        try:
+            answers = resolver.query(name, query_type)
+            for rdata in answers: 
+                return rdata.to_text()
+        except:
+            return False
+        
+    if ORDER == 4:  ret= _q(name, 'A') 
+    if ORDER == 6:  ret= _q(name, 'AAAA') 
+    if ORDER == 64: ret= _q(name, 'AAAA') or _q(name, 'AAAA')
+    if ORDER == 46: ret= _q(name, 'A') or _q(name, 'AAAA')
+    return ret
+
+        
 #def acl(config, DST_ADDR):
 #    for banned_dst in config.BANNED_DST :
 #        if re.search(rf'\.?{banned_dst}$' , DST_ADDR):
@@ -104,127 +114,6 @@ class LocalTCP(asyncio.Protocol):
         #loop = asyncio.get_event_loop()
         #self.negotiate_task = loop.create_task(self.process_header_and_feed_the_rest())
         self.stage = self.STAGE_NEGOTIATE
-
-#    async def process_header_and_feed_the_rest(self):
-#            print('start negotiate')
-#            data_leftover=b'' # something that left after reading headers.
-#            buf=await self.stream_reader.readexactly(6)
-#            try:
-#                # Step 1
-#                # The client sends a MPROXY header.
-#                if buf != b'MPROXY' :
-#                    raise NoVersionAllowed(f"Received wrong header: {buf}")
-#                else:
-#                    HEADER=buf
-#
-#                i=6-1
-#                # The client send rest of the header ending with \r\n
-#                while True:
-#                    i+=1
-#                    buf =  await self.stream_reader.readexactly(1)
-#                    print(buf)
-#                    if buf == b'\r':
-#                        await self.stream_reader.readexactly(1)  # read \n
-#                        break
-#                    else:
-#                        HEADER+=buf
-#
-#                HEADER=HEADER.decode()
-#                print('read HEADER', HEADER)
-#
-#                #data_leftover=b'GET / HTTP/1.1\r\n'
-#                print('reading leftover')
-#                data_leftover= await self.stream_reader.read(31) # something that left after reading header
-#                print('reading leftover stop')
-#                print('data_leftover', data_leftover)
-#
-#                try:
-#                    _, PROTO, DST_ADDR, DST_PORT = HEADER.split(' ')
-#                except:
-#                    raise CommandExecError(f"Can't parse HEADER: {HEADER}")
-#
-#                self.config.ACCESS_LOG and access_logger.info(
-#                    f'Incoming Relay request to {PROTO}://{DST_ADDR}:{DST_PORT}'
-#                )
-#
-#                # resolve if needed.
-#                if ':' in DST_ADDR or not re.match(r'\d', DST_ADDR):
-#                    HNAME=DST_ADDR
-#
-#                    self.config.ACCESS_LOG and access_logger.debug(
-#                        f'Resolving remote name {HNAME}'
-#                    )
-#                    DST_ADDR = query(self.config.resolver, HNAME , 'A')
-#                    if not DST_ADDR:
-#                        raise CommandExecError("Can't resolve hostname {HNAME}")
-#                    self.config.ACCESS_LOG and access_logger.debug(
-#                        f'{HNAME} resolved to {DST_ADDR}'
-#                    )
-#                # Now DST_ADDR is Ipv4/Ipv6. 
-#
-#                # Step 2
-#                # The server handles the command and returns a reply.
-#                if PROTO == 'TCP':
-#                    self.stage = self.STAGE_CONNECT
-#                    TCP_CONNECT_TIMEOUT=2
-#                    #print('my stage', self.stage)
-#                    try:
-#                        loop = asyncio.get_event_loop()
-#                        task = loop.create_connection(
-#                            lambda: RemoteTCP(self, self.config), DST_ADDR, DST_PORT
-#                        )
-#                        remote_tcp_transport, remote_tcp = await asyncio.wait_for(task, TCP_CONNECT_TIMEOUT)
-#                    except ConnectionRefusedError:
-#                        raise CommandExecError("Connection was refused") from None
-#                    except socket.gaierror:
-#                        raise CommandExecError("Host is unreachable") from None
-#                    except Exception as e:
-#                        raise CommandExecError(
-#                            f"General socks server failure occurred {e}"
-#                        ) from None
-#                    else:
-#                        self.remote_tcp = remote_tcp
-#                        bind_addr, bind_port = remote_tcp_transport.get_extra_info(
-#                            "sockname"
-#                        )
-#
-#                        self.config.ACCESS_LOG and access_logger.info(
-#                            f"Established TCP stream between"
-#                            f" {self.peername} and {self.remote_tcp.peername}"
-#                        )
-#                elif PROTO == 'UDP' :
-#                    self.stage = self.STAGE_CONNECT
-#                    try:
-#                        loop = asyncio.get_event_loop()
-#                        task = loop.create_datagram_endpoint(
-#                            lambda: LocalUDP((DST_ADDR, DST_PORT), self.config),
-#                            local_addr=("0.0.0.0", 0),
-#                        )
-#                        local_udp_transport, local_udp = await asyncio.wait_for(task, 5)
-#                    except Exception:
-#                        raise CommandExecError(
-#                            "General socks server failure occurred"
-#                        ) from None
-#                    else:
-#                        self.local_udp = local_udp
-#                        bind_addr, bind_port = local_udp_transport.get_extra_info(
-#                            "sockname"
-#                        )
-#
-#                        self.config.ACCESS_LOG and access_logger.info(
-#                            f"Established UDP relay for client {self.peername} "
-#                            f"at local side {bind_addr,bind_port}"
-#                        )
-#                else:
-#                    raise NoCommandAllowed(f"Unsupported CMD value: {CMD}")
-#
-#            except Exception as e:
-#                error_logger.warning(f"{e} during the negotiation with {self.peername}")
-#                self.close()
-#            
-#            #print('header processing stop; sent to self.remote_tcp.write:', data_leftover)
-#            print( self.remote_tcp )
-#            self.remote_tcp.write(data_leftover)
 
     async def process_header_and_feed_the_rest2(self, data):
             #print('start negotiate')
@@ -277,9 +166,9 @@ class LocalTCP(asyncio.Protocol):
                     self.config.ACCESS_LOG and access_logger.debug(
                         f'Resolving remote name {HNAME}'
                     )
-                    DST_ADDR = query(self.config.resolver, HNAME , 'A')
+                    DST_ADDR = query(self.config.resolver, HNAME )
                     if not DST_ADDR:
-                        raise CommandExecError("Can't resolve hostname {HNAME}")
+                        raise CommandExecError(f"Can't resolve hostname {HNAME}")
                     self.config.ACCESS_LOG and access_logger.debug(
                         f'{HNAME} resolved to {DST_ADDR}'
                     )
@@ -307,8 +196,14 @@ class LocalTCP(asyncio.Protocol):
                         ) from None
                     else:
                         self.remote_tcp = remote_tcp
-                        bind_addr, bind_port = remote_tcp_transport.get_extra_info(
-                            "sockname"
+
+                        if ':' in DST_ADDR :
+                            bind_addr, bind_port, _, _ = remote_tcp_transport.get_extra_info( "sockname")
+                        else:
+                            bind_addr, bind_port = remote_tcp_transport.get_extra_info( "sockname")
+
+                        self.config.ACCESS_LOG and access_logger.debug(
+                            f"Talking to the remote side from local ip {bind_addr} local port {bind_port}"
                         )
 
                         self.config.ACCESS_LOG and access_logger.info(
@@ -317,14 +212,12 @@ class LocalTCP(asyncio.Protocol):
                         )
 
                     if data_leftover:
-                        #print('= send to self.remote_tcp.write:', data_leftover)
                         try:
                             self.remote_tcp.write(data_leftover)
                         except Exception as e:
                             raise CommandExecError(f"Could not write data leftover to the remote side, {e}")
                             self.close()
                     else:
-                        #print('nothing to send to self.remote_tcp.write')
                         pass
 
 

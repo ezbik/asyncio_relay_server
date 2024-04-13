@@ -4,3 +4,12 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 echo -ne "MPROXY TCP vk.com 80\r\nGET / HTTP/1.1\r\nHost: vk.com\r\n\r\n"  | nc localhost 1080
 
+echo -ne "MPROXY TCP ipv6.tanatos.org 80\r\nGET /ip.php HTTP/1.1\r\nHost: ipv6.tanatos.org\r\n\r\n"  | nc localhost 1080
+
+
+echo 'qqoBAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE=' | base64 -d > dnsquery
+
+# on ip.tanatos.org: run gost -L dns://:80
+sleep 2; { echo -ne "MPROXY UDP ipv6.tanatos.org 80\r\n"; cat dnsquery; }  | nc localhost 1080  > dnsansw
+sleep 2; { echo -ne "MPROXY UDP ip.tanatos.org 80\r\n"; cat dnsquery; }  | nc localhost 1080  > dnsansw
+

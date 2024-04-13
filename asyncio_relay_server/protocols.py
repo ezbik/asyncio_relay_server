@@ -324,7 +324,6 @@ class RemoteTCP(asyncio.Protocol):
         self.config.ACCESS_LOG and access_logger.debug(
             f"Made RemoteTCP connection to {self.peername}"
         )
-        #print( 'stage', self.local_tcp.stage)
 
     def data_received(self, data):
         #print('RemoteTCP data_received',data)

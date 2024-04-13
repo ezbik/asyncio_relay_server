@@ -226,24 +226,35 @@ class LocalTCP(asyncio.Protocol):
                     try:
                         loop = asyncio.get_event_loop()
                         task = loop.create_datagram_endpoint(
-                            lambda: LocalUDP((DST_ADDR, DST_PORT), self.config),
-                            local_addr=("0.0.0.0", 0),
+                            lambda: RemoteUDP(self,  self.config),
+                            #local_addr=("0.0.0.0", 0),
+                            remote_addr=(DST_ADDR, DST_PORT),
                         )
-                        local_udp_transport, local_udp = await asyncio.wait_for(task, 5)
-                    except Exception:
+                        remote_udp_transport, remote_udp = await asyncio.wait_for(task, 5)
+                    except Exception as e:
                         raise CommandExecError(
-                            "General socks server failure occurred"
+                            f"General socks server failure occurred {e} "
                         ) from None
                     else:
-                        self.local_udp = local_udp
-                        bind_addr, bind_port = local_udp_transport.get_extra_info(
-                            "sockname"
-                        )
+                        self.remote_udp = remote_udp
+
+                        if ':' in DST_ADDR :
+                            bind_addr, bind_port, _, _ = remote_udp_transport.get_extra_info( "sockname")
+                        else:
+                            bind_addr, bind_port = remote_udp_transport.get_extra_info( "sockname")
 
                         self.config.ACCESS_LOG and access_logger.info(
                             f"Established UDP relay for client {self.peername} "
                             f"at local side {bind_addr,bind_port}"
                         )
+                    if data_leftover:
+                        try:
+                            self.remote_udp.write(data_leftover)
+                        except Exception as e:
+                            raise CommandExecError(f"Could not write data leftover to the remote side, {e}")
+                            self.close()
+                    else:
+                        pass
                 else:
                     raise NoCommandAllowed(f"Unsupported CMD value: {CMD}")
 
@@ -297,7 +308,7 @@ class LocalTCP(asyncio.Protocol):
         self.negotiate_task and self.negotiate_task.cancel()
         self.transport and self.transport.close()
         self.remote_tcp and self.remote_tcp.close()
-        self.local_udp and self.local_udp.close()
+        #self.local_udp and self.local_udp.close()
 
         self.config.ACCESS_LOG and access_logger.debug(
             f"Closed LocalTCP connection from {self.peername}"
@@ -359,13 +370,9 @@ class RemoteTCP(asyncio.Protocol):
         )
 
 
-#class LocalUDP(asyncio.DatagramProtocol):
-
-
 class RemoteUDP(asyncio.DatagramProtocol):
-    def __init__(self, local_udp, local_host_port, config: Config):
-        self.local_udp = local_udp
-        self.local_host_port = local_host_port
+    def __init__(self, local_tcp, config: Config):
+        self.local_tcp = local_tcp
         self.config = config
         self.transport = None
         self.sockname = None
@@ -379,18 +386,13 @@ class RemoteUDP(asyncio.DatagramProtocol):
             f"Made RemoteUDP endpoint at {self.sockname}"
         )
 
-    def write(self, data, host_port):
+    def write(self, data):
         if not self.transport.is_closing():
-            self.transport.sendto(data, host_port)
-
-    @staticmethod
-    def gen_udp_reply_header(remote_host_port: Tuple[str, int], config):
-        return ""
+            self.transport.sendto(data)
 
     def datagram_received(self, data: bytes, remote_host_port: Tuple[str, int]) -> None:
         try:
-            header = self.gen_udp_reply_header(remote_host_port, self.config)
-            self.local_udp.write(header + data, self.local_host_port)
+            self.local_tcp.write( data)
         except Exception as e:
             error_logger.warning(
                 f"{e} during relaying the response from {remote_host_port}"
@@ -402,7 +404,8 @@ class RemoteUDP(asyncio.DatagramProtocol):
             return
         self.is_closing = True
         self.transport and self.transport.close()
-        self.local_udp = None
+        self.local_tcp.close
+        self.local_tcp = None
 
         self.config.ACCESS_LOG and access_logger.debug(
             f"Closed RemoteUDP endpoint at {self.sockname}"

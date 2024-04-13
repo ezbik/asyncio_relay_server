@@ -383,7 +383,7 @@ class RemoteUDP(asyncio.DatagramProtocol):
         self.sockname = transport.get_extra_info("sockname")
 
         self.config.ACCESS_LOG and access_logger.debug(
-            f"Made RemoteUDP endpoint at {self.sockname}"
+            f"Made RemoteUDP at local endpoint {self.sockname}"
         )
 
     def write(self, data):

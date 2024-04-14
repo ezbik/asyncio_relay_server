@@ -160,7 +160,7 @@ class LocalTCP(asyncio.Protocol):
 
 
                 # resolve if needed.
-                if ':' in DST_ADDR or not re.match(r'\d', DST_ADDR):
+                if not ':' in DST_ADDR or not re.match(r'^\d', DST_ADDR):
                     HNAME=DST_ADDR
 
                     self.config.ACCESS_LOG and access_logger.debug(
@@ -264,22 +264,33 @@ class LocalTCP(asyncio.Protocol):
                 self.close()
             
 
+    async def feed_remote_tcp(self, data):
+        #print('feed_remote_tcp', data[:100])
+        loop = asyncio.get_event_loop()
+        try:
+            while True:
+                #wait till self.remote_tcp is ready
+                if self.remote_tcp:
+                    #print('remote tcp ready')
+                    self.remote_tcp.write(data)
+                    return
+                else:
+                    await asyncio.sleep(0.1)
+        except Exception as e:
+            self.config.ACCESS_LOG and access_logger.debug(f"Could not write data to the remote side: {e}")
+            self.close()
 
+        
     def data_received(self, data):
         #print(f'LocalTCP: at stage {self.stage} rcvd data {data[:100]} , length {len(data)}')
         if self.stage == self.STAGE_NEGOTIATE:
             loop = asyncio.get_event_loop()
             pro_task = loop.create_task(self.process_header_and_feed_the_rest2(data))
-            #await asyncio.wait_for(pro_task, 2)
-            #data_leftover = process_header_and_feed_the_rest2(data)
-            #self.remote_tcp.write( data_leftover )
         elif self.stage == self.STAGE_CONNECT:
             #print('= sending directly to remote side')
-            try:
-                self.remote_tcp.write(data)
-            except Exception as e:
-                self.config.ACCESS_LOG and access_logger.debug(f"Could not write data to the remote side: {e}")
-                self.close()
+            loop = asyncio.get_event_loop()
+            feed_task = loop.create_task(self.feed_remote_tcp(data))
+            #self.remote_tcp.write(data)
 
         elif self.stage == self.STAGE_DESTROY:
             self.close()

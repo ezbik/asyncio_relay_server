@@ -15,7 +15,7 @@ class AIOSSArgumentParser(RawTextHelpFormatter):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="asyncio_socks_server",
+        prog="asyncio_relay_server",
         description=BASE_LOGO,
         formatter_class=AIOSSArgumentParser,
         add_help=False,

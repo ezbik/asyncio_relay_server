@@ -16,7 +16,7 @@ from asyncio_relay_server.exceptions import (
     NoVersionAllowed,
     SocksException,
 )
-from asyncio_relay_server.logger import access_logger, error_logger, logger
+from asyncio_relay_server.logger import access_logger, error_logger, logger, lfile_logger
 import re
 import time
 
@@ -111,6 +111,7 @@ class LocalTCP(asyncio.Protocol):
         self.config.ACCESS_LOG and access_logger.debug(
             f"Made LocalTCP connection from {self.peername}"
         )
+        #lfile_logger.info( f'<- {self.peername}' )
         #loop = asyncio.get_event_loop()
         #self.negotiate_task = loop.create_task(self.process_header_and_feed_the_rest())
         self.stage = self.STAGE_NEGOTIATE
@@ -158,7 +159,7 @@ class LocalTCP(asyncio.Protocol):
                     f'Incoming Relay request to {PROTO}://{DST_ADDR}:{DST_PORT}'
                 )
 
-
+                lfile_record=f'{self.peername} -> {PROTO}://{DST_ADDR}:{DST_PORT}'
                 # resolve if needed.
                 if ':' in DST_ADDR or re.match(r'^\d', DST_ADDR):
                     pass
@@ -176,6 +177,9 @@ class LocalTCP(asyncio.Protocol):
                         f'{HNAME} resolved to {DST_ADDR}'
                     )
                 # Now DST_ADDR is Ipv4/Ipv6. 
+
+                lfile_record+=f' [{DST_ADDR}]'
+                lfile_logger.info( lfile_record )
 
                 # Step 2
                 # The server handles the command and returns a reply.

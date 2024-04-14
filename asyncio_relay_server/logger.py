@@ -12,19 +12,20 @@ def gen_log_config(config: Config):
         "version": 1,
         "disable_existing_loggers": False,
         "loggers": {
-            "socks_server.root": {"level": server_log_level, "handlers": ["console"]},
-            "socks_server.error": {
+            "relay_server.root": {"level": server_log_level, "handlers": ["console"]},
+            "relay_server.error": {
                 "level": server_log_level,
                 "handlers": ["error_console"],
                 "propagate": True,
-                "qualname": "socks_server.error",
+                "qualname": "relay_server.error",
             },
-            "socks_server.access": {
+            "relay_server.access": {
                 "level": server_log_level,
                 "handlers": ["access_console"],
                 "propagate": True,
-                "qualname": "socks_server.access",
+                "qualname": "relay_server.access",
             },
+            "relay_server.lfile": { "level": server_log_level, "handlers": ["lfile"]},
         },
         "handlers": {
             "console": {
@@ -42,8 +43,18 @@ def gen_log_config(config: Config):
                 "formatter": server_log_formatter,
                 "stream": sys.stdout,
             },
+            "lfile": {
+                "class": "logging.FileHandler",
+                "formatter": "lfile",
+                "filename": "a.log",
+            },
         },
         "formatters": {
+            "lfile": {
+                "format": "%(asctime)s %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S %z",
+                "class": "logging.Formatter",
+            },
             "generic": {
                 "format": "%(asctime)s | %(levelname)-8s | %(message)s",
                 "datefmt": "%Y-%m-%d %H:%M:%S %z",
@@ -58,8 +69,9 @@ def gen_log_config(config: Config):
     }
 
 
-logger = logging.getLogger("socks_server.root")
+logger = logging.getLogger("relay_server.root")
 
-error_logger = logging.getLogger("socks_server.error")
+error_logger = logging.getLogger("relay_server.error")
 
-access_logger = logging.getLogger("socks_server.access")
+access_logger = logging.getLogger("relay_server.access")
+lfile_logger = logging.getLogger("relay_server.lfile")

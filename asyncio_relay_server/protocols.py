@@ -160,7 +160,10 @@ class LocalTCP(asyncio.Protocol):
 
 
                 # resolve if needed.
-                if not ':' in DST_ADDR or not re.match(r'^\d', DST_ADDR):
+                if ':' in DST_ADDR or re.match(r'^\d', DST_ADDR):
+                    pass
+                    # it is ipv4/ipv6
+                else:
                     HNAME=DST_ADDR
 
                     self.config.ACCESS_LOG and access_logger.debug(

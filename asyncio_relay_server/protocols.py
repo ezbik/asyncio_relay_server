@@ -91,18 +91,22 @@ class LocalTCP(asyncio.Protocol):
         self.config = config
         self.stage = None
         self.transport = None
-        self.remote_tcp = None
-        self.local_udp = None
+        self.remote_tcp = None # remote site e.g. https://gmail.com
+        self.local_udp = None 
+        self.remote_udp = None # remote UDP site e.g. udp://dns.google:53
         self.peername = None
         self.stream_reader = StreamReader()
         self.negotiate_task = None
         self.is_closing = False
         #self.__init_authenticator_cls()
+        self.dst_type=None
 
 
     def write(self, data):
+        print('sending to Relay client', data[:100])
         if not self.transport.is_closing():
             self.transport.write(data)
+            print('..sent')
 
     def connection_made(self, transport):
         self.transport = transport
@@ -114,7 +118,7 @@ class LocalTCP(asyncio.Protocol):
         #lfile_logger.info( f'<- {self.peername}' )
         #loop = asyncio.get_event_loop()
         #self.negotiate_task = loop.create_task(self.process_header_and_feed_the_rest())
-        self.stage = self.STAGE_NEGOTIATE
+        self.set_stage ( self.STAGE_NEGOTIATE)
 
     async def process_header_and_feed_the_rest2(self, data):
             #print('start negotiate')
@@ -183,10 +187,10 @@ class LocalTCP(asyncio.Protocol):
 
                 # Step 2
                 # The server handles the command and returns a reply.
+                self.dst_type=PROTO
                 if PROTO == 'TCP':
-                    self.stage = self.STAGE_CONNECT
+                    self.set_stage  ( self.STAGE_CONNECT)
                     TCP_CONNECT_TIMEOUT=2
-                    #print('my stage', self.stage)
                     try:
                         loop = asyncio.get_event_loop()
                         task = loop.create_connection(
@@ -229,20 +233,22 @@ class LocalTCP(asyncio.Protocol):
 
 
                 elif PROTO == 'UDP' :
-                    self.stage = self.STAGE_CONNECT
-                    try:
-                        loop = asyncio.get_event_loop()
-                        task = loop.create_datagram_endpoint(
-                            lambda: RemoteUDP(self,  self.config),
-                            #local_addr=("0.0.0.0", 0),
-                            remote_addr=(DST_ADDR, DST_PORT),
-                        )
-                        remote_udp_transport, remote_udp = await asyncio.wait_for(task, 5)
-                    except Exception as e:
-                        raise CommandExecError(
-                            f"General socks server failure occurred {e} "
-                        ) from None
-                    else:
+                    self.set_stage(self.STAGE_CONNECT)
+                    self.remote_udp_addr=(DST_ADDR, DST_PORT)
+                    if data_leftover:
+                        try:
+                            loop = asyncio.get_event_loop()
+                            task = loop.create_datagram_endpoint(
+                                lambda: RemoteUDP(self,  self.config),
+                                #local_addr=("0.0.0.0", 0),
+                                remote_addr=self.remote_udp_addr,
+                            )
+                            remote_udp_transport, remote_udp = await asyncio.wait_for(task, 5)
+                        except Exception as e:
+                            raise CommandExecError(
+                                f"General socks server failure occurred {e} "
+                            ) from None
+                        
                         self.remote_udp = remote_udp
 
                         if ':' in DST_ADDR :
@@ -254,13 +260,14 @@ class LocalTCP(asyncio.Protocol):
                             f"Established UDP relay for client {self.peername} "
                             f"at local side {bind_addr,bind_port}"
                         )
-                    if data_leftover:
+
                         try:
                             self.remote_udp.write(data_leftover)
                         except Exception as e:
                             raise CommandExecError(f"Could not write data leftover to the remote side, {e}")
                             self.close()
                     else:
+                        print('empty data_leftover, wont establish remote UDP')
                         pass
                 else:
                     raise NoCommandAllowed(f"Unsupported CMD value: {CMD}")
@@ -287,17 +294,55 @@ class LocalTCP(asyncio.Protocol):
             self.config.ACCESS_LOG and access_logger.debug(f"Could not write data to the remote side: {e}")
             self.close()
 
+    async def feed_remote_udp(self, data):
+        if not self.remote_udp:
+                try:
+                    loop = asyncio.get_event_loop()
+                    task = loop.create_datagram_endpoint(
+                        lambda: RemoteUDP(self,  self.config),
+                        #local_addr=("0.0.0.0", 0),
+                        remote_addr=self.remote_udp_addr,
+                    )
+                    remote_udp_transport, remote_udp = await asyncio.wait_for(task, 5)
+                except Exception as e:
+                    raise CommandExecError(
+                        f"General socks server failure occurred {e} "
+                    ) from None
+              
+                self.remote_udp = remote_udp
+
+                self.config.ACCESS_LOG and access_logger.info( f"Established UDP relay for client {self.peername} -> {self.remote_udp_addr}")
         
+        try:
+            self.remote_udp.write(data)
+        except Exception as e:
+            raise CommandExecError(f"Could not write data leftover to the remote side, {e}")
+            self.close()
+        
+    def set_stage(self,stage):
+        self.stage=stage
+        print('stage set to ', self.stage)
+
     def data_received(self, data):
-        #print(f'LocalTCP: at stage {self.stage} rcvd data {data[:100]} , length {len(data)}')
+        print(f'LocalTCP: at stage {self.stage} rcvd data {data[:100]} , length {len(data)}')
         if self.stage == self.STAGE_NEGOTIATE:
+            #print(3333)
             loop = asyncio.get_event_loop()
             pro_task = loop.create_task(self.process_header_and_feed_the_rest2(data))
         elif self.stage == self.STAGE_CONNECT:
-            #print('= sending directly to remote side')
-            loop = asyncio.get_event_loop()
-            feed_task = loop.create_task(self.feed_remote_tcp(data))
-            #self.remote_tcp.write(data)
+            #print(22222)
+            #print(self.remote_udp)
+            if self.dst_type=='UDP' :
+                print('writing to remote udp', data)
+                loop = asyncio.get_event_loop()
+                feed_task = loop.create_task(self.feed_remote_udp(data))
+            elif self.dst_type=='TCP':
+                #print('= sending directly to remote side')
+                loop = asyncio.get_event_loop()
+                feed_task = loop.create_task(self.feed_remote_tcp(data))
+                #self.remote_tcp.write(data)
+            else:
+                print('no way to send')
 
         elif self.stage == self.STAGE_DESTROY:
             self.close()
@@ -320,7 +365,7 @@ class LocalTCP(asyncio.Protocol):
     def close(self):
         if self.is_closing:
             return
-        self.stage = self.STAGE_DESTROY
+        self.set_stage (self.STAGE_DESTROY)
         self.is_closing = True
 
         self.negotiate_task and self.negotiate_task.cancel()
@@ -405,10 +450,12 @@ class RemoteUDP(asyncio.DatagramProtocol):
         )
 
     def write(self, data):
+        print('writing to RemoteUDP server', data[:100])
         if not self.transport.is_closing():
             self.transport.sendto(data)
 
     def datagram_received(self, data: bytes, remote_host_port: Tuple[str, int]) -> None:
+        print('datagram_received from RemoteUDP server', data[:100])
         try:
             self.local_tcp.write( data)
         except Exception as e:

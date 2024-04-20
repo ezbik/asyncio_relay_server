@@ -103,10 +103,10 @@ class LocalTCP(asyncio.Protocol):
 
 
     def write(self, data):
-        print('sending to Relay client', data[:100])
+        #print('sending to Relay client', data[:100])
         if not self.transport.is_closing():
             self.transport.write(data)
-            print('..sent')
+            #print('..sent')
 
     def connection_made(self, transport):
         self.transport = transport
@@ -324,7 +324,7 @@ class LocalTCP(asyncio.Protocol):
         print('stage set to ', self.stage)
 
     def data_received(self, data):
-        print(f'LocalTCP: at stage {self.stage} rcvd data {data[:100]} , length {len(data)}')
+        #print(f'LocalTCP: at stage {self.stage} rcvd data {data[:100]} , length {len(data)}')
         if self.stage == self.STAGE_NEGOTIATE:
             #print(3333)
             loop = asyncio.get_event_loop()
@@ -333,7 +333,7 @@ class LocalTCP(asyncio.Protocol):
             #print(22222)
             #print(self.remote_udp)
             if self.dst_type=='UDP' :
-                print('writing to remote udp', data)
+                #print('writing to remote udp', data)
                 loop = asyncio.get_event_loop()
                 feed_task = loop.create_task(self.feed_remote_udp(data))
             elif self.dst_type=='TCP':
@@ -450,12 +450,12 @@ class RemoteUDP(asyncio.DatagramProtocol):
         )
 
     def write(self, data):
-        print('writing to RemoteUDP server', data[:100])
+        #print('writing to RemoteUDP server', data[:100])
         if not self.transport.is_closing():
             self.transport.sendto(data)
 
     def datagram_received(self, data: bytes, remote_host_port: Tuple[str, int]) -> None:
-        print('datagram_received from RemoteUDP server', data[:100])
+        #print('datagram_received from RemoteUDP server', data[:100])
         try:
             self.local_tcp.write( data)
         except Exception as e:

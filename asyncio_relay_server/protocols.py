@@ -440,6 +440,8 @@ class RemoteUDP(asyncio.DatagramProtocol):
         self.transport = None
         self.sockname = None
         self.is_closing = False
+        self.pkt_rcv_counter=0
+        self.bytes_rcv_counter=0
 
     def connection_made(self, transport) -> None:
         self.transport = transport
@@ -455,9 +457,12 @@ class RemoteUDP(asyncio.DatagramProtocol):
             self.transport.sendto(data)
 
     def datagram_received(self, data: bytes, remote_host_port: Tuple[str, int]) -> None:
-        #print('datagram_received from RemoteUDP server', data[:100])
+        self.pkt_rcv_counter+=1
+        self.bytes_rcv_counter+=len(data)
+        print('datagram_received, pkt Number', self.pkt_rcv_counter, 'pkt size' , len(data), 'total rcvd', self.bytes_rcv_counter, 'from RemoteUDP server', data[:10] )
         try:
-            self.local_tcp.write( data)
+            #self.local_tcp.write( b'@START@' + str(self.pkt_rcv_counter).encode() + b'@' +data + b'@END@')
+            self.local_tcp.write( data )
         except Exception as e:
             error_logger.warning(
                 f"{e} during relaying the response from {remote_host_port}"

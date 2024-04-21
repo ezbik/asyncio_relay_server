@@ -450,14 +450,19 @@ class RemoteUDP(asyncio.DatagramProtocol):
         self.transport = transport
         self.sockname = transport.get_extra_info("sockname")
 
-        self.config.ACCESS_LOG and access_logger.debug(
-            f"Made RemoteUDP at local endpoint {self.sockname}"
-        )
+        #self.config.ACCESS_LOG and access_logger.debug(
+            #f"Made RemoteUDP at local endpoint {self.sockname}"
+        #)
 
     def write(self, data):
         print('conn_id', self.conn_id, 'writing to RemoteUDP server', data[:30])
         if not self.transport.is_closing():
             self.transport.sendto(data)
+            loop = asyncio.get_event_loop()
+            loop.create_task( self.lwait() )
+
+    async def lwait(self):
+        await asyncio.sleep(0.001)
 
     def datagram_received(self, data: bytes, remote_host_port: Tuple[str, int]) -> None:
         self.pkt_rcv_counter+=1

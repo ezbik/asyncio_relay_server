@@ -4,6 +4,8 @@ import socket
 from asyncio.streams import StreamReader
 from socket import AF_INET, AF_INET6, inet_ntop, inet_pton
 from typing import Optional, Tuple
+import uuid
+
 
 from asyncio_relay_server.config import Config
 from asyncio_relay_server.exceptions import (
@@ -442,6 +444,7 @@ class RemoteUDP(asyncio.DatagramProtocol):
         self.is_closing = False
         self.pkt_rcv_counter=0
         self.bytes_rcv_counter=0
+        self.conn_id=str(uuid.uuid4())
 
     def connection_made(self, transport) -> None:
         self.transport = transport
@@ -452,14 +455,14 @@ class RemoteUDP(asyncio.DatagramProtocol):
         )
 
     def write(self, data):
-        #print('writing to RemoteUDP server', data[:100])
+        print('conn_id', self.conn_id, 'writing to RemoteUDP server', data[:30])
         if not self.transport.is_closing():
             self.transport.sendto(data)
 
     def datagram_received(self, data: bytes, remote_host_port: Tuple[str, int]) -> None:
         self.pkt_rcv_counter+=1
         self.bytes_rcv_counter+=len(data)
-        print('datagram_received, pkt Number', self.pkt_rcv_counter, 'pkt size' , len(data), 'total rcvd', self.bytes_rcv_counter, 'from RemoteUDP server', data[:10] )
+        print('conn_id', self.conn_id, 'datagram_received: pkt Number', self.pkt_rcv_counter, 'pkt size' , len(data), 'total rcvd', self.bytes_rcv_counter, 'from RemoteUDP server', data[:10] )
         try:
             #self.local_tcp.write( b'@START@' + str(self.pkt_rcv_counter).encode() + b'@' +data + b'@END@')
             self.local_tcp.write( data )

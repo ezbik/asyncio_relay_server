@@ -109,6 +109,13 @@ class LocalTCP(asyncio.Protocol):
         if not self.transport.is_closing():
             self.transport.write(data)
             #print('..sent')
+            if self.dst_type=='UDP' :
+                # delay for sending to RelayClient if Remote side is UDP
+                loop = asyncio.get_event_loop()
+                loop.create_task( self.lwait() )
+
+    async def lwait(self):
+        await asyncio.sleep(0.01)
 
     def connection_made(self, transport):
         self.transport = transport
@@ -462,7 +469,7 @@ class RemoteUDP(asyncio.DatagramProtocol):
             loop.create_task( self.lwait() )
 
     async def lwait(self):
-        await asyncio.sleep(0.001)
+        await asyncio.sleep(0.01)
 
     def datagram_received(self, data: bytes, remote_host_port: Tuple[str, int]) -> None:
         self.pkt_rcv_counter+=1

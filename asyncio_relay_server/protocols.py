@@ -112,7 +112,8 @@ class LocalTCP(asyncio.Protocol):
             if self.dst_type=='UDP' :
                 # delay for sending to RelayClient if Remote side is UDP
                 loop = asyncio.get_event_loop()
-                loop.create_task( self.lwait() )
+                task = loop.create_task( self.lwait() )
+                loop.run_until_complete(task)
 
     async def lwait(self):
         await asyncio.sleep(0.01)

@@ -102,18 +102,18 @@ class LocalTCP(asyncio.Protocol):
         self.is_closing = False
         #self.__init_authenticator_cls()
         self.dst_type=None
+        self.loop = asyncio.get_event_loop()
 
 
     def write(self, data):
-        #print('sending to Relay client', data[:100])
+        print('sending to TCP Relay client', data[:50])
         if not self.transport.is_closing():
             self.transport.write(data)
             #print('..sent')
             if self.dst_type=='UDP' :
+                pass
                 # delay for sending to RelayClient if Remote side is UDP
-                loop = asyncio.get_event_loop()
-                task = loop.create_task( self.lwait() )
-                loop.run_until_complete(task)
+                task = self.loop.create_task( self.lwait() )
 
     async def lwait(self):
         await asyncio.sleep(0.01)
@@ -463,19 +463,14 @@ class RemoteUDP(asyncio.DatagramProtocol):
         #)
 
     def write(self, data):
-        print('conn_id', self.conn_id, 'writing to RemoteUDP server', data[:30])
+        #print('conn_id', self.conn_id, 'writing to RemoteUDP server', data[:30])
         if not self.transport.is_closing():
             self.transport.sendto(data)
-            loop = asyncio.get_event_loop()
-            loop.create_task( self.lwait() )
-
-    async def lwait(self):
-        await asyncio.sleep(0.01)
 
     def datagram_received(self, data: bytes, remote_host_port: Tuple[str, int]) -> None:
         self.pkt_rcv_counter+=1
         self.bytes_rcv_counter+=len(data)
-        print('conn_id', self.conn_id, 'datagram_received: pkt Number', self.pkt_rcv_counter, 'pkt size' , len(data), 'total rcvd', self.bytes_rcv_counter, 'from RemoteUDP server', data[:10] )
+        #print('conn_id', self.conn_id, 'datagram_received: pkt Number', self.pkt_rcv_counter, 'pkt size' , len(data), 'total rcvd', self.bytes_rcv_counter, 'from RemoteUDP server', data[:10] )
         try:
             #self.local_tcp.write( b'@START@' + str(self.pkt_rcv_counter).encode() + b'@' +data + b'@END@')
             self.local_tcp.write( data )

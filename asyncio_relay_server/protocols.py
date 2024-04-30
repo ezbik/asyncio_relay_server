@@ -277,7 +277,7 @@ class LocalTCP(asyncio.Protocol):
                             raise CommandExecError(f"Could not write data leftover to the remote side, {e}")
                             self.close()
                     else:
-                        print('empty data_leftover, wont establish remote UDP')
+                        #print('empty data_leftover, wont establish remote UDP')
                         pass
                 else:
                     raise NoCommandAllowed(f"Unsupported CMD value: {CMD}")

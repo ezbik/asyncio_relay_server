@@ -163,7 +163,7 @@ class LocalTCP(asyncio.Protocol):
                 #print('data_leftover', data_leftover)
 
                 try:
-                    _, PROTO, DST_ADDR, DST_PORT, ORIG_SRC_ADDR, ORIG_SRC_PORT = HEADER.split(' ')
+                    _, PROTO, DST_ADDR, DST_PORT, ORIG_SRC_ADDR, ORIG_SRC_PORT, USERNAME = HEADER.split(' ')
                 except:
                     raise CommandExecError(f"Can't parse HEADER: {HEADER}")
 
@@ -173,7 +173,7 @@ class LocalTCP(asyncio.Protocol):
                     f'Incoming Relay request to {PROTO}://{DST_ADDR}:{DST_PORT}'
                 )
 
-                lfile_record=f'{self.peername[0]}:{self.peername[1]} [{ORIG_SRC_ADDR}:{ORIG_SRC_PORT}] -> {PROTO}://{DST_ADDR}:{DST_PORT}'
+                lfile_record=f'[{USERNAME}] {self.peername[0]}:{self.peername[1]} [{ORIG_SRC_ADDR}:{ORIG_SRC_PORT}] -> {PROTO}://{DST_ADDR}:{DST_PORT}'
 
                 # resolve if needed.
                 if ':' in DST_ADDR or re.match(r'^\d', DST_ADDR):

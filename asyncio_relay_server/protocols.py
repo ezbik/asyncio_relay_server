@@ -173,7 +173,8 @@ class LocalTCP(asyncio.Protocol):
                     f'Incoming Relay request to {PROTO}://{DST_ADDR}:{DST_PORT}'
                 )
 
-                lfile_record=f'{self.peername} -> {PROTO}://{DST_ADDR}:{DST_PORT}'
+                lfile_record=f'{self.peername[0]}:{self.peername[1]} -> {PROTO}://{DST_ADDR}:{DST_PORT}'
+
                 # resolve if needed.
                 if ':' in DST_ADDR or re.match(r'^\d', DST_ADDR):
                     pass

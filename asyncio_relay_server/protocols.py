@@ -106,7 +106,7 @@ class LocalTCP(asyncio.Protocol):
 
 
     def write(self, data):
-        print('sending to TCP Relay client', data[:50])
+        #print('sending to TCP Relay client', data[:50])
         if not self.transport.is_closing():
             self.transport.write(data)
             #print('..sent')
@@ -331,7 +331,7 @@ class LocalTCP(asyncio.Protocol):
         
     def set_stage(self,stage):
         self.stage=stage
-        print('stage set to ', self.stage)
+        #print('stage set to ', self.stage)
 
     def data_received(self, data):
         #print(f'LocalTCP: at stage {self.stage} rcvd data {data[:100]} , length {len(data)}')

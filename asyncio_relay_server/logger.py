@@ -46,7 +46,7 @@ def gen_log_config(config: Config):
             "lfile": {
                 "class": "logging.FileHandler",
                 "formatter": "lfile",
-                "filename": "a.log",
+                "filename": config.REQUESTS_LOG_FILE,
             },
         },
         "formatters": {

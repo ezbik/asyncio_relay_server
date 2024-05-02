@@ -193,7 +193,7 @@ class LocalTCP(asyncio.Protocol):
                 # Now DST_ADDR is Ipv4/Ipv6. 
 
                 lfile_record+=f' [{DST_ADDR}]'
-                lfile_logger.info( lfile_record )
+                self.config.REQUESTS_LOG_FILE and lfile_logger.info( lfile_record )
 
                 # Step 2
                 # The server handles the command and returns a reply.

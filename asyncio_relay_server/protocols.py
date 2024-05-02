@@ -106,7 +106,7 @@ class LocalTCP(asyncio.Protocol):
 
 
     def write(self, data):
-        print('sending to TCP Relay client', data[:50])
+        #print('sending to TCP Relay client', data[:50])
         if not self.transport.is_closing():
             self.transport.write(data)
             #print('..sent')
@@ -163,7 +163,7 @@ class LocalTCP(asyncio.Protocol):
                 #print('data_leftover', data_leftover)
 
                 try:
-                    _, PROTO, DST_ADDR, DST_PORT = HEADER.split(' ')
+                    _, PROTO, DST_ADDR, DST_PORT, ORIG_SRC_ADDR, ORIG_SRC_PORT, USERNAME = HEADER.split(' ')
                 except:
                     raise CommandExecError(f"Can't parse HEADER: {HEADER}")
 
@@ -173,7 +173,8 @@ class LocalTCP(asyncio.Protocol):
                     f'Incoming Relay request to {PROTO}://{DST_ADDR}:{DST_PORT}'
                 )
 
-                lfile_record=f'{self.peername} -> {PROTO}://{DST_ADDR}:{DST_PORT}'
+                lfile_record=f'[{USERNAME}] {self.peername[0]}:{self.peername[1]} [{ORIG_SRC_ADDR}:{ORIG_SRC_PORT}] -> {PROTO}://{DST_ADDR}:{DST_PORT}'
+
                 # resolve if needed.
                 if ':' in DST_ADDR or re.match(r'^\d', DST_ADDR):
                     pass
@@ -277,7 +278,7 @@ class LocalTCP(asyncio.Protocol):
                             raise CommandExecError(f"Could not write data leftover to the remote side, {e}")
                             self.close()
                     else:
-                        print('empty data_leftover, wont establish remote UDP')
+                        #print('empty data_leftover, wont establish remote UDP')
                         pass
                 else:
                     raise NoCommandAllowed(f"Unsupported CMD value: {CMD}")
@@ -331,7 +332,7 @@ class LocalTCP(asyncio.Protocol):
         
     def set_stage(self,stage):
         self.stage=stage
-        print('stage set to ', self.stage)
+        #print('stage set to ', self.stage)
 
     def data_received(self, data):
         #print(f'LocalTCP: at stage {self.stage} rcvd data {data[:100]} , length {len(data)}')

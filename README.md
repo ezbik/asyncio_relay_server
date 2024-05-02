@@ -1,31 +1,21 @@
 
 
-## Socks5 server
+## Relay server 
 
-- .. that accepts clients and instead of proxying, sends the data  through a relay.
+.. for my Socks5 server
+
+- that accepts relayed requests and sends the data to the website and send responses back to the relay client.
 - Inspired by https://github.com/Amaindex/asyncio-socks-server 
 
 ## protocol
 
-like Haproxy PROXY v1
-allows TCP/UDP
+- like Haproxy PROXY v1
+- allows TCP/UDP
 
-MPROXY TCP 4 DST DSTPORT\r\n
+Header: 
 
-## proxy server
+```
+MPROXY TCP 4 DST DSTPORT ORIG_SRC_ADDR ORIG_SRC_PORT USERNAME\r\n
+```
 
-based on Asyncio Socks server
-
-accepts Socks5 clients, does all kinds of ACLS
-
-instead of Remote TCP\UDP servers, calls relay.
-
-Talks to the relay with protocol
-
-DNS requests are made within relay too.
-
-
-## TCP relay server
-
-accepts connections. Reads protocol header. Establish remote TCP/UDP. Reads-writes data between connected cliend and the remoteTCP/remoteUDP.
 

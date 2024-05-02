@@ -8,7 +8,8 @@ def gen_log_config(config: Config):
     server_log_level = "DEBUG" if config.DEBUG else "INFO"
     server_log_formatter = "diagnostic" if config.DEBUG else "generic"
 
-    return {
+
+    logger_config = {
         "version": 1,
         "disable_existing_loggers": False,
         "loggers": {
@@ -25,7 +26,6 @@ def gen_log_config(config: Config):
                 "propagate": True,
                 "qualname": "relay_server.access",
             },
-            "relay_server.lfile": { "level": server_log_level, "handlers": ["lfile"]},
         },
         "handlers": {
             "console": {
@@ -43,18 +43,8 @@ def gen_log_config(config: Config):
                 "formatter": server_log_formatter,
                 "stream": sys.stdout,
             },
-            "lfile": {
-                "class": "logging.FileHandler",
-                "formatter": "lfile",
-                "filename": config.REQUESTS_LOG_FILE,
-            },
         },
         "formatters": {
-            "lfile": {
-                "format": "%(asctime)s %(message)s",
-                "datefmt": "%Y-%m-%d %H:%M:%S %z",
-                "class": "logging.Formatter",
-            },
             "generic": {
                 "format": "%(asctime)s | %(levelname)-8s | %(message)s",
                 "datefmt": "%Y-%m-%d %H:%M:%S %z",
@@ -68,10 +58,21 @@ def gen_log_config(config: Config):
         },
     }
 
+    logger_config['loggers']['relay_server.lfile']={ "level": server_log_level, "handlers": ["lfile"]}
+    logger_config['handlers']["lfile"]= {
+                "class": "logging.FileHandler",
+                "formatter": "lfile",
+                "filename": config.REQUESTS_LOG_FILE,
+            }
+    logger_config['formatters']["lfile"]= {
+                "format": "%(asctime)s %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S %z",
+                "class": "logging.Formatter",
+            }
+    return logger_config
+
 
 logger = logging.getLogger("relay_server.root")
-
 error_logger = logging.getLogger("relay_server.error")
-
 access_logger = logging.getLogger("relay_server.access")
 lfile_logger = logging.getLogger("relay_server.lfile")

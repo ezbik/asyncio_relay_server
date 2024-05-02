@@ -24,9 +24,8 @@ DEFAULT_CONFIG = {
     "DEBUG": False,
     "RESOLVER": "",
     "RESOLVING_ORDER": 46,
-    "REQUESTS_LOG_FILE": "",
+    "REQUESTS_LOG_FILE": "/dev/null",
 }
-
 
 class Config(dict):
     LISTEN_HOST: str
